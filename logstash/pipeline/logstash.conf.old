@@ -1,0 +1,235 @@
+input {
+  elasticsearch {
+    user => logstash_internal
+    password => "logstashPassword!23"
+  }
+  tcp {
+    port => 5000
+  }
+  beats {
+    port => 5044
+  }
+}
+
+## Add your filters / logstash plugins configuration here
+filter {
+  elasticsearch {
+    user => logstash_internal
+    password => "logstashPassword!23"
+  }
+  mutate {
+    gsub => [
+      "message", "[\r\n\t]+", " "
+    ]
+  }
+  if "nginx_access" in [tags] {
+    grok {
+      match => [ "message", "%{COMBINEDAPACHELOG}" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "nginx_error" in [tags] {
+    grok {
+      match => [ "message", "(?<timestamp>%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}) \[%{LOGLEVEL:severity}\] %{POSINT:pid}#%{NUMBER:threadid}\: \*%{NUMBER:connectionid} %{GREEDYDATA:errormessage}, client: %{IP:client}, server: %{GREEDYDATA:server}, request: %{GREEDYDATA:request}" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "php_error" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{GREEDYDATA:message}" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "mysql" in [tags] {
+    grok {
+      match => [ "message", "%{TIMESTAMP_ISO8601:timestamp}.*?Query\s+(?<data>(.|\r|\n)*)" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "mysql-slow" in [tags] {
+    grok {
+      match => [ "message", "# User@Host: %{USER:user}[^#]+.*Query_time: %{NUMBER:duration:float}\s+Lock_time: %{NUMBER:lock_wait:float} Rows_sent: %{NUMBER:results:int}\s*Rows_examined: %{NUMBER:scanned:int}.*SET timestamp=%{NUMBER:timestamp};\s+(?<message>[^#]+)" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "backend" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "cipher" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}%{SPACE}(?<message>.*?), length:%{SPACE}%{NUMBER:length}" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "guzzle" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "callcenter" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}%{NUMBER:code}%{SPACE}(?<controller>.*?):%{SPACE}(?<path>[^\s]+)%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "moderator" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}(?<message>[^\{\[]+)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "import" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "frontend" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}%{NUMBER:code}%{SPACE}(?<controller>.*?):%{SPACE}(?<path>[^\s]+)%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  if "mobile" in [tags] {
+    grok {
+      match => [ "message", "%{SYSLOG5424SD:timestamp}%{SPACE}%{WORD:logger}.%{LOGLEVEL:type}:%{SPACE}%{NUMBER:code}%{SPACE}(?<controller>.*?):%{SPACE}(?<path>[^\s]+)%{SPACE}(?<message>.*?)%{SPACE}(?<data>({['\"\\]+.*?}|\[\]))%{SPACE}\[\]" ]
+      overwrite => [ "message" ]
+    }
+  }
+  date {
+    match => ["timestamp", "YYYY-MM-dd HH:mm:ss,SSS"]
+    timezone => "UTC"
+    target => "@timestamp"
+  }
+
+  if ([data]) {
+    json {
+      source => "data"
+      target => "json"
+      skip_on_invalid_json => true
+    }
+
+    if ([json]) {
+      ruby {
+        code => "
+          event.get('json').each {|k, v|
+            event.set(k, v.to_s)
+          }
+          event.remove('json')
+        "
+        }
+    }
+  }
+}
+
+
+output {
+  if "nginx_access" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-nginx_access-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "nginx_error" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-nginx_error-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "php_error" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-php-%{+YYYY.MM.dd}"
+      password => "logstashPassword!23"
+      password => "logstashPassword!23"
+    }
+  }
+  if "mysql" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-mysql-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "mysql-slow" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      user => logstash_internal
+      password => "logstashPassword!23"
+      index => "filebeat-mysql-slow-%{+YYYY.MM.dd}"
+    }
+  }
+  if "backend" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-backend-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "cipher" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-cipher-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "callcenter" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-callcenter-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "guzzle" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-guzzle-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "moderator" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-moderator-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "import" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-import-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "frontend" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-frontend-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+  if "mobile" in [tags] {
+    elasticsearch {
+      hosts => [ "elasticsearch:9200" ]
+      index => "filebeat-mobile-%{+YYYY.MM.dd}"
+      user => logstash_internal
+      password => "logstashPassword!23"
+    }
+  }
+}

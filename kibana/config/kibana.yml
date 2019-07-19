@@ -9,5 +9,8 @@ xpack.monitoring.ui.container.elasticsearch.enabled: true
 
 ## X-Pack security credentials
 #
+
+#elasticsearch.username: kibana
+#elasticsearch.password: 1KH29ygzXV9EJYJh5D06
 elasticsearch.username: elastic
-elasticsearch.password: changeme
+elasticsearch.password: Ha9F2GCfkEnLnPRi9C7c

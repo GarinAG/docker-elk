@@ -23,13 +23,14 @@ services:
 
   logstash:
     container_name: logstash
+#    command: logstash --debug
     build:
       context: logstash/
       args:
         ELK_VERSION: $ELK_VERSION
     volumes:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+#      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ./logs/logstash:/usr/share/logstash/logs
     ports:
       - "5000:5000"

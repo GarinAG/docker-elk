@@ -3,7 +3,7 @@
 ## from https://github.com/elastic/elasticsearch-docker/blob/master/.tedi/template/elasticsearch.yml
 #
 cluster.name: "docker-cluster"
-network.host: 0.0.0.0
+network.host: "0.0.0.0"
 
 ## Use single node discovery in order to disable production mode and avoid bootstrap checks
 ## see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
@@ -17,6 +17,12 @@ xpack.license.self_generated.type: trial
 xpack.security.enabled: true
 xpack.monitoring.collection.enabled: true
 
-http.cors:
-  enabled: true
-  allow-origin: /https?:\/\/(elasticsearch|localhost|0\.0\.0\.0)(:[0-9]+)?/
+#PASSWORD apm_system = NNFbqVRoLoYzYLDBzLT2
+#PASSWORD kibana = 1KH29ygzXV9EJYJh5D06
+#PASSWORD logstash_system = drkfPpUjlLSabHUNf0KO
+#PASSWORD logstash_internal = ajsKJasdkjUYI87KJ
+#PASSWORD logstash_user = klk6JHGhgjy23kmnbmMN
+#PASSWORD logstash_admin_user = ca78vjsadkGFasdj94J
+#PASSWORD beats_system = fZ3PeGdJIzO247OtyKdn
+#PASSWORD remote_monitoring_user = cas718zBOi52aoQRQ4pm
+#PASSWORD elastic = Ha9F2GCfkEnLnPRi9C7c

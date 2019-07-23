@@ -61,6 +61,7 @@ services:
       - elasticsearch
 
   curator:
+    container_name: curator
     build:
       context: extensions/curator/
     environment:

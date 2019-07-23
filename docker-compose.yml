@@ -10,6 +10,7 @@ services:
         ELK_VERSION: $ELK_VERSION
     volumes:
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/config/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties:ro
       - ./data/elasticsearch:/usr/share/elasticsearch/data
       - ./logs/elasticsearch:/usr/share/elasticsearch/logs
     ports:
@@ -17,7 +18,7 @@ services:
       - "9300:9300"
     environment:
       ES_JAVA_OPTS: "-Xmx512m -Xms256m"
-      ELASTIC_PASSWORD: changeme
+      ELASTIC_PASSWORD: Ha9F2GCfkEnLnPRi9C7c
     networks:
       - elk
 
@@ -30,7 +31,7 @@ services:
         ELK_VERSION: $ELK_VERSION
     volumes:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-#      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ./logs/logstash:/usr/share/logstash/logs
     ports:
       - "5000:5000"
